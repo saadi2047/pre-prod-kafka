@@ -1,30 +1,30 @@
-# =================================================================
-# EPay Common Chart - prod-dc Environment Configuration
-# =================================================================
-# Global values for all charts###
+# ================================================================
+# EPay Common Chart - Pre-Prod Environment Configuration
+# ================================================================
+# Global values for all charts#
 global:
-  environment: prod-dc
-  clusterDomain: prod.epay.sbi
-  imageRegistry: proddc-registry-route-quay-enterprise.apps.dc.prod.epay.sbi:8443
-  imagePullSecrets: microservices-prod-pull-secret
-  storageClass: thin-csi-retain
+  environment: preproddc
+  clusterDomain: preprod.epay.sbi
+  imageRegistry: registry.preprod.epay.sbi:8443
+  imagePullSecrets: []
+  storageClass: trident-csi-retain
 # ================================================================
-# Service Mesh 3.0 Configuration (prod-dc Instance)
-# ================================================================
+# Service Mesh 3.0 Configuration (Pre-Prod-dc Instance) 
+# ================================================================#
 serviceMesh:
   enabled: true
   # Core Istio Control Plane
   controlPlane:
-    name: "prod-dc-istio"
-    namespace: "prod-dc-istio-system"
+    name: "pre-prod-dc-istio"
+    namespace: "pre-prod-dc-istio-system"
     version: "v1.24-latest"
     updateStrategy: "InPlace"
-    meshId: "prod-dc-mesh"
-    network: "prod-dc-network"
+    meshId: "pre-prod-dc-mesh"
+    network: "pre-prod-dc-network"
     # Discovery selector for namespace scoping
     discoverySelector:
       key: "istio-discovery"
-      value: "prod-dc-istio"
+      value: "pre-prod-dc-istio"
   # CNI Configuration
   cni:
     enabled: true
@@ -32,8 +32,8 @@ serviceMesh:
     name: "default"
     namespace: "istio-cni"
     excludeNamespaces:
-      - prod-dc-istio-system
-      - prod-dc-istio-cni
+      - pre-prod-dc-istio-system
+      - pre-prod-dc-istio-cni
       - kube-system
       - openshift-system
       - openshift-operators
@@ -43,28 +43,28 @@ serviceMesh:
   gateway:
     # Istio Gateway resource
     istioGateway:
-      name: "prod-dc-gateway"
-      namespace: "prod-dc-istio-system"
+      name: "pre-prod-dc-gateway"
+      namespace: "pre-prod-dc-istio-system"
       hosts:
-        - "sbiepay.sbi.bank.in"
+        - "preprod.epay.sbi"
       port: 8080
     # Gateway Deployment and Service
     deployment:
-      name: "prod-dc-istio-gateway"
-      namespace: "prod-dc-istio-system"
+      name: "pre-prod-dc-istio-gateway"
+      namespace: "pre-prod-dc-istio-system"
       replicas: 1
-      selector: "prod-dc-istio-gateway"
-      revision: "prod-dc-istio"
+      selector: "pre-prod-dc-istio-gateway"
+      revision: "pre-prod-dc-istio"
       resources:
         requests:
-          cpu: "100m"
-          memory: "128Mi"
+          cpu: "1000m"
+          memory: "512Mi"
         limits:
           cpu: "2000m"
           memory: "1024Mi"
     # Gateway Service
     service:
-      name: "prod-dc-istio-gateway-service"
+      name: "pre-prod-dc-istio-gateway-service"
       type: ClusterIP
       ports:
         status: 15021
@@ -72,9 +72,9 @@ serviceMesh:
         https: 8443
     # OpenShift Route
     route:
-      name: "prod-dc-istio-gateway-route"
+      name: "pre-prod-dc-istio-gateway-route"
       enabled: true
-      host: "sbiepay.sbi.bank.in"
+      host: "preprod.epay.sbi"
       tls:
         termination: "edge"
         insecureEdgeTerminationPolicy: "None"
@@ -85,7 +85,7 @@ serviceMesh:
     istiod:
       enabled: true
       minReplicas: 2
-      maxReplicas: 5
+      maxReplicas: 6
       targetCPUUtilizationPercentage: 70
       targetMemoryUtilizationPercentage: 80
       behavior:
@@ -127,7 +127,7 @@ serviceMesh:
 # ================================================================
 
 
-  # Traffic Management Configuration (Infrastructure level only)
+  # Traffic Management Configuration (Infrastructure level only)#
   trafficManagement:
     virtualServices:
       enabled: true
@@ -140,12 +140,12 @@ serviceMesh:
 infrastructure:
   # Infrastructure peer authentication (mesh-wide)
   peerAuthentication:
-    # Disable mTLS for infrastructure components in prod-dc
+    # Disable mTLS for infrastructure components in pre-prod
     kafka:
       enabled: true
       mtlsMode: "DISABLE"
     gemfire:
-      enabled: true
+      enabled: false
       mtlsMode: "DISABLE"
     managementConsoles:
       enabled: true
@@ -155,9 +155,9 @@ infrastructure:
 # Security Configuration
 # ================================================================
 security:
-  enabled: true
+  enabled: false
   scc:
-    enabled: true
+    enabled: false
     name: "epay-restricted-scc"
     runAsUser:
       uidRangeMin: 1000
@@ -195,16 +195,16 @@ security:
   # Service accounts for infrastructure components
   serviceAccounts:
     enabled: false
-#
-# ================================================================#
-# GemFire Configuration (Simplified to match reference)
-# ================================================================
+
+#================================================================#
+#GemFire Configuration (Simplified to match reference)
+#================================================================
 gemfire:
   enabled: false
-  namespace: "prod-dc-gemfire"
+  namespace: "pre-prod-dc-gemfire"
 
   cluster:
-    name: "gemfire-preprod-system"
+    name: "gemfire-preproddc-system"
     image: "registry.preprod.epay.sbi:8443/ubi9/pivotal-gemfire/vmware-gemfire:10.1.2"
 
     locators:
@@ -257,18 +257,18 @@ gemfire:
 
   managementConsole:
     route:
-      enabled: true
+      enabled: false
       host: "gemfire-management-console.apps.preprod.epay.sbi"
       tls:
         termination: "edge"
         insecureEdgeTerminationPolicy: "Redirect"
 
-    enabled: true
-    name: prod-dc-gemfire-management-console
+    enabled: false
+    name: pre-prod-gmc
     image: registry.preprod.epay.sbi:8443/ubi9/gemfire-management-console/gemfire-management-console:latest
     replicas: 1
     port: 8080
-    pvcName: gemfire-data-prod-dc-gmc-0
+    pvcName: gemfire-data-pre-prod-gmc-0
   env:
     - name: server.port
       value: "8080"
@@ -282,7 +282,7 @@ gemfire:
   volume:
     name: gemfire-data
     mountPath: /opt/gemfire/VMware_GemFire_Management_Console
-    storageClassName: thin-csi-retain
+    storageClassName: trident-csi-retain
     terminationGracePeriodSeconds: 120
 
     affinity:
@@ -306,23 +306,23 @@ gemfire:
         operator: "Exists"
         effect: "NoExecute"
         tolerationSeconds: 300
-    # Route configuration
-    #route:
-    #  enabled: true
-    #  host: "gemfire-management-console.apps.preprod.epay.sbi"
-    #  tls:
-    #    termination: "edge"
-    #    insecureEdgeTerminationPolicy: "Redirect"
+    #Route configuration
+    route:
+     enabled: true
+     host: "gemfire-management-console.apps.preprod.epay.sbi"
+     tls:
+       termination: "edge"
+       insecureEdgeTerminationPolicy: "Redirect"
 
 # ================================================================#
 # Kafka Configuration (AMQ Streams - KRaft JBOD)
-# ================================================================
+# ================================================================#
 kafka:
   enabled: true
-  namespace: "prod-dc-kafka"
+  namespace: "pre-prod-dc-kafka"
   # Kafka Cluster Configuration (KRaft mode)
   cluster:
-    name: "prod-dc-kafka-cluster"
+    name: "pre-prod-dc-kafka-cluster"
     version: "3.9.0"
     metadataVersion: "3.9-IV0"
     # Annotations
@@ -343,7 +343,7 @@ kafka:
       - name: external
         port: 9094
         type: route
-        tls: true  
+        tls: true 
       config:
         offsets.topic.replication.factor: 3
         transaction.state.log.replication.factor: 3
@@ -461,11 +461,63 @@ kafka:
           operator: "Exists"
           effect: "NoExecute"
           tolerationSeconds: 300
+  ###     
+  metricsConfig:
+    enabled: true 
+    key: kafka-metrics-config.yml
+    name: kafka-metrics 
+    clusterOperator:
+      path: /metrics
+      port: http
+    entityOperator:
+      path: /metrics
+      port: healthcheck
+    kafkaBridge:
+      path: /metrics
+      port: rest-api
+    kafkaResources:
+      path: /metrics
+      port: tcp-prometheus
+      
+  relabelings:
+    enabled: true
+    rules:
+      - sourceLabels: [__meta_kubernetes_pod_label_strimzi_io_.*]
+        separator: ;
+        regex: (.+)
+        replacement: $1
+        action: labelmap
+      - sourceLabels: [__meta_kubernetes_namespace]
+        separator: ;
+        regex: (.*)
+        targetLabel: namespace
+        replacement: $1
+        action: replace
+      - sourceLabels: [__meta_kubernetes_pod_name]
+        separator: ;
+        regex: (.*)
+        targetLabel: kubernetes_pod_name
+        replacement: $1
+        action: replace
+      - sourceLabels: [__meta_kubernetes_pod_node_name]
+        separator: ;
+        regex: (.*)
+        targetLabel: node_name
+        replacement: $1
+        action: replace
+      - sourceLabels: [__meta_kubernetes_pod_host_ip]
+        separator: ;
+        regex: (.*)
+        targetLabel: node_ip
+        replacement: $1
+        action: replace
+
+
 
   # PDF Recommendation: Cruise Control for cluster rebalancing
   cruiseControl:
     enabled: true
-    name: "prod-dc-kafka-cruise-control"
+    name: "pre-prod-dc-kafka-cruise-control"
     resources:
       requests:
         memory: "2Gi"
@@ -499,10 +551,10 @@ kafka:
   # PDF Recommendation: Kafka Connect for database integration
   kafkaConnect:
     enabled: false
-    name: "prod-dc-kafka-connect"
+    name: "pre-prod-dc-kafka-connect"
     replicas: 3
-    bootstrapServers: "prod-dc-kafka-cluster-kafka-bootstrap.prod-dc-kafka.svc.cluster.local:9093"
-    image: "epaynonprod-registry-quay-quay-enterprise.apps.preprod.epay.sbi/redhatdefultimage/debeziumconnect:01"
+    bootstrapServers: "pre-prod-dc-kafka-cluster-kafka-bootstrap.pre-prod-kafka.svc.cluster.local:9093"
+    image: "dc-preprod-registry-quay-quay-enterprise.apps.dcpreprod.epay.sbi/redhatdefultimage/debeziumconnect:01"
     imagePullSecrets: 
        - microservices-preprod-pull-secret
     resources:
@@ -514,10 +566,10 @@ kafka:
         cpu: "4"
     config:
       group:
-        id: "prod-dc-connect-cluster"
+        id: "pre-prod-dc-connect-cluster"
       offset:
         storage:
-          topic: "prod-dc-connect-cluster-offsets"
+          topic: "pre-prod-dc-connect-cluster-offsets"
         flush:
           interval:
             ms: 10000
@@ -525,10 +577,10 @@ kafka:
             ms: 5000
       config:
         storage:
-          topic: "prod-dc-connect-cluster-configs"
+          topic: "pre-prod-dc-connect-cluster-configs"
       status:
         storage:
-          topic: "prod-dc-connect-cluster-status"
+          topic: "pre-prod-dc-connect-cluster-status"
     # Connectors configuration
 
     connectors:
@@ -546,7 +598,7 @@ kafka:
             password: "April_2025"
             dbname: "epaydbpp"
             server:
-              name: "epay-preprod-db"
+              name: "epay-preprod-dc-db"
           decimal.handling.mode: string
           schema.history.internal.skip.unparseable.ddl: "false"
           schema.history.internal.kafka.topic: schema-changes.inventory
@@ -561,56 +613,40 @@ kafka:
               internal:
                 kafka:
                   bootstrap:
-                    servers: "prod-dc-kafka-cluster-kafka-bootstrap.prod-dc-kafka.svc.cluster.local:9093"  
+                    servers: "pre-prod-dc-kafka-cluster-kafka-bootstrap.pre-prod-dc-kafka.svc.cluster.local:9093"  
                 topic: "epay-db-history"
           include:
             schema:
               changes: true
 
   # PDF Recommendation: MirrorMaker 2 for disaster recovery
- # PDF Recommendation: MirrorMaker 2 for disaster recovery
   mirrorMaker2:
     enabled: true
-    name: "prod-dc-kafka-mirror-maker"
-    # Active/Passive setup for DR#
+    name: "pre-prod-dc-kafka-mirror-maker"
+    # Active/Passive setup for DR
     clusters:
       - alias: "source"
-        bootstrapServers: "prod-dc-kafka-cluster-kafka-bootstrap.prod-dc-kafka.svc.cluster.local:9092"
+        bootstrapServers: "pre-prod-dc-kafka-cluster-kafka-bootstrap.pre-prod-dc-kafka.svc.cluster.local:9092"
       - alias: "target"
-        bootstrapServers: "prod-dr-kafka-cluster-kafka-bootstrap-prod-dr-kafka.apps.dr.prod.epay.sbi:443"
-        #bootstrapServers: "prod-dr-kafka-cluster-kafka-bootstrap.prod-dr-kafka.svc.cluster.local:9092"
-
+        bootstrapServers: "pre-prod-kafka-cluster-kafka-bootstrap-pre-prod-kafka.apps.preprod.epay.sbi:443"
+        #bootstrapServers: "dr-kafka-cluster-kafka-bootstrap.dr-kafka.svc.cluster.local:9092"
     mirrors:
       - sourceCluster: "source"
         targetCluster: "target"
         sourceConnector:
-          #tasksMax: 1 #(to increase or Maximum partition count)
           config:
             replication.factor: 3
             offset-syncs.topic.replication.factor: 3
             sync.topic.acls.enabled: true
             replication.policy.class: "org.apache.kafka.connect.mirror.IdentityReplicationPolicy"
         heartbeatConnector:
-           config: {}
-        #     heartbeats.topic.replication.factor: 3
-        #     replication.policy.class: org.apache.kafka.connect.mirror.IdentityReplicationPolicy
+          config:
+            heartbeats.topic.replication.factor: 3
         checkpointConnector:
-          #tasksMax: 1 #(to increase or Maximum partition count)
           config:
             checkpoints.topic.replication.factor: 3
-            refresh.groups.interval.seconds: 30
-            offset.sync.interval.ms: 3000
-            #sync.group.offsets.enabled: true
-            checkpoints.enabled: true              # ✓ Enables checkpoint connector
-            emit.checkpoints.enabled: true         # ✓ Allows sync emission
-            emit.checkpoints.interval.seconds: 10  # Interval to sync offsets
-            sync.group.offsets.enabled: true       # ✓ Sync group offsets
-            sync.group.offsets.interval.ms: 5000   # Interval for group offset syncing
-            offset.lag.max: 0
-            replication.policy.class: org.apache.kafka.connect.mirror.IdentityReplicationPolicy
-
-        topicsPattern: "merchant_.*,transaction_.*,ops_.smm_.*"
-        groupsPattern: "operation-consumers,transaction-consumers,merchant-consumers,smm-test-group"
+        topicsPattern: ".*"
+        groupsPattern: ".*"
     resources:
       requests:
         memory: "2Gi"
@@ -618,40 +654,59 @@ kafka:
       limits:
         memory: "4Gi"
         cpu: "2"
+
   # Kafka Users for ePay application    
   kafkaUser:
     enabled: true
     name: epay-user
-    namespace: prod-dc-kafka
-    cluster: prod-dc-kafka-cluster
+    namespace: pre-prod-dc-kafka
+    cluster: pre-prod-dc-kafka-cluster
     authentication:
-      type: scram-sha-512  # Kafka Users for ePay application  
+      type: scram-sha-512  # Kafka Users for ePay application       
+  
+  console:
+    enabled: true
+    name: pre-prod-dc-console
+    namespace: pre-prod-dc-kafka
+    hostname: pre-prod-dc-kafkaconsole.apps.preprod.epay.sbi
+    credentials:
+      kafkaUser:
+        name: epay-user
+    listener: plain
+    kafkaClusters:
+      name: pre-prod-dc-kafka-cluster 
+      namespace: pre-prod-dc-kafka
 
 
 # Kafka Topics for ePay application
 topics:
-  - name: "prod-dc-connect-cluster-offsets"
+  - name: "pre-prod-dc-connect-cluster-offsets"
     partitions: 25
     replicas: 3
-  - name: "prod-dc-connect-cluster-configs"
+  - name: "pre-prod-dc-connect-cluster-configs"
     partitions: 1
     replicas: 3
-  - name: "prod-dc-connect-cluster-status"
+  - name: "pre-prod-dc-connect-cluster-status"
     partitions: 5
     replicas: 3
   - name: "epay-db-history"
     partitions: 1
     replicas: 3
+   
 
 # PDF Recommendation: Distributed tracing for environment
 tracing:
-  enabled: true
+  enabled: false
   type: "tempo"
-  # Create our own Tempo instance for prod-dc environment
+  # Create our own Tempo instance for pre-prod-dc environment
   tempo:
     enabled: false
-    name: "prod-dc-tempo"
-    namespace: "prod-dc-tempo"
+    name: "pre-prod-dc-tempo"
+    namespace: "pre-prod-dc-tempo"
+    tenants:
+       tenantName: dev
+       tenantId: "1610b0c3-c509-4592-a256-a1871353dbfa"
+
     # Tempo instance configuration for latest operator
     spec:
       # Storage configuration
@@ -672,7 +727,7 @@ tracing:
           requests:
             memory: "1Gi" 
             cpu: "500m"
-      # Service configuration for prod-dc
+      # Service configuration for pre-prod-dc
       services:
         distributor:
           replicas: 1
@@ -687,8 +742,8 @@ tracing:
     # Persistence for our Tempo instance
     persistence:
       enabled: true
-      size: "10Gi"
-      storageClass: "thin-csi-retain"
+      size: "50Gi"
+      storageClass: "trident-csi-retain"
 # Environment-level monitoring infrastructure
 monitoring:
   enabled: false
@@ -700,7 +755,7 @@ monitoring:
     
   # Disable separate Prometheus deployment - use OpenShift built-in
   prometheus:
-    enabled: true
+    enabled: false
     retention: "30d"
     
   # Grafana for enhanced dashboards (optional - OpenShift Console has basic monitoring)
@@ -709,7 +764,7 @@ monitoring:
     persistence:
       enabled: true
       size: "20Gi"
-      storageClass: "thi-csi"
+      storageClass: "trident-csi-retain"
     resources:
       requests:
         memory: "1Gi"
@@ -730,7 +785,7 @@ monitoring:
     
   # PrometheusRule for infrastructure alerting (works with OpenShift monitoring)
   prometheusRule:
-    enabled: true
+    enabled: false
     rules:
       - alert: "KafkaClusterDown"
         expr: "kafka_server_replicamanager_leadercount == 0"
@@ -749,57 +804,138 @@ monitoring:
         annotations:
           summary: "Tempo tracing is down"
           description: "Tempo distributed tracing service is unavailable"
+        
+
+  kiali:
+    serviceAccount:
+      name: pre-prod-dc-kiali-service-account
+      namespace: pre-prod-dc-istio-system
+
+    # Horizontal Pod Autoscaler configuration
+    hpa:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 2
+      targetDeploymentName: kiali
+      cpu:
+        averageUtilization: 80
+      memory:
+        averageUtilization: 80
+
+    deployment:
+      cluster_wide_access: true
+      instance_name: kiali
+      logger:
+        log_level: info
+      view_only_mode: false
+
+    external_services:
+      tracing:
+        auth:
+          insecure_skip_verify: false
+          type: "none"
+          use_kiali_token: false
+        enabled: false
+        in_cluster_url: ""
+        namespace_selector: false
+        provider: ""
+        query_timeout: 30s
+        url: ""
+        use_grpc: false
+        
+      grafana:
+        enabled: false
+      prometheus:
+        auth:
+          type: "none"
+          use_kiali_token: false
+        thanos_proxy:
+          enabled: false
+        url: ""    
+
+    # RBAC configuration
+    rbac:
+      # General Kiali labels
+      labels:
+        app: kiali
+        app.kubernetes.io/instance: pre-prod-dc-kiali
+        app.kubernetes.io/name: kiali
+        app.kubernetes.io/part-of: kiali
+
+      # Annotations for the ClusterRoleBindings
+      annotations:
+        operator-sdk/primary-resource: pre-prod-dc-istio-system/pre-prod-kiali
+        operator-sdk/primary-resource-type: Kiali.kiali.io
+
+      clusterRoleBindings:
+        # ClusterRoleBinding for 'cluster-monitoring-view'
+        monitoring:
+          name: pre-prod-dc-kiali-cluster-monitoring-view
+          roleName: cluster-monitoring-view
+
+        # ClusterRoleBinding for OAuth
+        oauth:
+          name: pre-prod-dc-kiali-pre-prod-dc-istio-system-oauth
+          roleName: pre-prod-dc-kiali-pre-prod-dc-istio-system-oauth
+
+        # ClusterRoleBinding for Kiali Viewer
+        viewer:
+          name: pre-prod-dc-kiali
+          roleName: pre-prod-kiali-viewer
+
 
 # Environment-level persistent storage
 persistentStorage:
-  enabled: true
+  enabled: false
   
   # Storage classes configuration
   storageClasses:
-    default: "thin-csi-retain"
+    default: "trident-csi-retain"
   
   # Persistent volumes for infrastructure components
   volumes:
     # Tempo storage
     tempo:
-      enabled: true
-      size: "100Gi"
-      storageClass: "thin-csi-retain"
+      enabled: false
+      size: "50Gi"
+      storageClass: "trident-csi-retain"
       accessMode: "ReadWriteOnce"
       
     # Prometheus storage (disabled - using OpenShift User Workload Monitoring)
     prometheus:
       enabled: true
       size: "200Gi"
-      storageClass: "thin-csi-retain"
+      storageClass: "trident-csi-retain"
       accessMode: "ReadWriteOnce"      
     # Grafana storage
     grafana:
       enabled: true
-      size: "100Gi"
-      storageClass: "thin-csi-retain"
+      size: "20Gi"
+      storageClass: "trident-csi-retain"
       accessMode: "ReadWriteOnce"
       
     # Kafka storage
     kafka:
       enabled: true
       size: "100Gi"
-      storageClass: "thin-csi-retain"
+      storageClass: "trident-csi-retain"
       accessMode: "ReadWriteOnce"
       
     # Environment logs storage
     environment-logs:
       enabled: true
-      size: "100Gi"
-      storageClass: "thin-csi-retain"
+      size: "50Gi"
+      storageClass: "trident-csi-retain"
       accessMode: "ReadWriteMany"
       
     # Backup storage
     backup:
       enabled: true
       size: "500Gi"
-      storageClass: "thin-csi-retain"
+      storageClass: "trident-csi-retain"
       accessMode: "ReadWriteOnce"
+      
+
 
 # OpenTelemetry configuration for environment
 opentelemetry:
@@ -842,7 +978,7 @@ opentelemetry:
       
       exporters:
         tempo:
-          endpoint: "tempo-distributor.prod-dc-tempo.svc.cluster.local:4317"
+          endpoint: "tempo-distributor.pre-prod-dc-tempo.svc.cluster.local:4317"
           tls:
             insecure: true
       
@@ -852,5 +988,108 @@ opentelemetry:
             receivers: ["otlp", "jaeger"]
             processors: ["memory_limiter", "batch"]
             exporters: ["tempo"]
-  
-###
+
+# TempoStack Configuration
+tempo:
+  name: simplest
+  namespace: pre-prod-dc-tempo
+  storage:
+    secretName: tempo-s3-storage-secret
+    type: s3
+  storageSize: 100Gi
+  resources:
+    total:
+      limits:
+        memory: 10Gi
+        cpu: 6000m
+  tenants:
+    mode: openshift
+    authentication:
+      - tenantName: dev
+        tenantId: "1610b0c3-c509-4592-a256-a1871353dbfa"
+  template:
+    gateway:
+      enabled: true
+    queryFrontend:
+      jaegerQuery:
+        enabled: true
+#
+# OpenTelemetry Collector Configuration
+otelCollector:
+  name: dev
+  namespace: tracing-system
+  image: ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:v0.92.0
+  serviceAccountName: dev-collector
+  tempoGateway:
+    host: tempo-simplest-gateway
+    grpcPort: 8090
+    httpPort: 8080
+
+
+################################################################
+# Istio Configuration
+istio:
+  namespace: pre-prod-dc-istio-system
+  meshConfig:
+    enableTracing: true
+    extensionProviders:
+      - name: otel
+        opentelemetry:
+          port: 4317
+          service: dev-collector.pre-prod-dc-istio-system.svc.cluster.local
+
+# Kiali Configuration
+kiali:
+  namespace: pre-prod-dc-kiali
+  deployment:
+    cluster_wide_access: true
+    instance_name: kiali
+    logger:
+      log_level: info
+    view_only_mode: false
+  external_services:
+    tracing:
+      enabled: true
+      in_cluster_url: 'https://simplest-gateway.perf-tempo.svc.cluster.local:8080/api/traces/v1/dev'
+      url: 'https://tempo-simplest-gateway-perf-tempo.apps.preprod.epay.sbi/api/traces/v1/dev/search'
+      auth:
+        type: bearer
+        use_kiali_token: true
+        insecure_skip_verify: true
+      provider: jaeger
+      query_timeout: 30
+      namespace_selector: true
+    grafana:
+      enabled: false
+    prometheus:
+      thanos_proxy:
+        enabled: true
+      url: 'https://thanos-querier.openshift-monitoring.svc.cluster.local:9091'
+      auth:
+        type: bearer
+        use_kiali_token: true
+
+# Telemetry Generation Jobs
+telemetrygen:
+  image: ghcr.io/open-telemetry/opentelemetry-collector-contrib/telemetrygen:v0.92.0
+  namespace: pre-prod-dc-istio-system
+  grpc:
+    enabled: true
+    count: 10
+  http:
+    enabled: true
+    count: 10
+
+####
+Security:
+  serviceAccounts:
+    create: true
+    list:
+      - name: "kiali-service-account"
+        annotations:
+          "my-annotation-key": "kiali monitoring"
+#      - name: "my-second-serviceaccount"
+#        annotations:
+#          "description": "Service Account for my application's backend"
+#      - name: "my-third-serviceaccount"
+####
