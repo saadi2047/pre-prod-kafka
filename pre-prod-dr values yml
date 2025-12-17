@@ -1,6 +1,6 @@
 # ================================================================
 # EPay Common Chart - Pre-Prod Environment Configuration
-# ================================================================
+# ================================================================#
 # Global values for all charts
 global:
   environment: preprod
@@ -8,7 +8,7 @@ global:
   imageRegistry: registry.preprod.epay.sbi:8443
   imagePullSecrets: microservices-preprod-pull-secret
   storageClass: trident-csi-retain
-# ================================================================
+# ================================================================#
 # Service Mesh 3.0 Configuration (Pre-Prod Instance) 
 # ================================================================#
 serviceMesh:
@@ -142,10 +142,10 @@ infrastructure:
   peerAuthentication:
     # Disable mTLS for infrastructure components in pre-prod
     kafka:
-      enabled: false
+      enabled: true
       mtlsMode: "DISABLE"
     gemfire:
-      enabled: true
+      enabled: false
       mtlsMode: "DISABLE"
     managementConsoles:
       enabled: true
@@ -257,13 +257,13 @@ gemfire:
 
   managementConsole:
     route:
-      enabled: true
+      enabled: false
       host: "gemfire-management-console.apps.preprod.epay.sbi"
       tls:
         termination: "edge"
         insecureEdgeTerminationPolicy: "Redirect"
 
-    enabled: true
+    enabled: false
     name: pre-prod-gmc
     image: registry.preprod.epay.sbi:8443/ubi9/gemfire-management-console/gemfire-management-console:latest
     replicas: 1
@@ -340,6 +340,10 @@ kafka:
         port: 9093
         type: internal
         tls: true
+      - name: external
+        port: 9094
+        type: route
+        tls: true  
       config:
         offsets.topic.replication.factor: 3
         transaction.state.log.replication.factor: 3
@@ -617,13 +621,14 @@ kafka:
 
   # PDF Recommendation: MirrorMaker 2 for disaster recovery
   mirrorMaker2:
-    enabled: true
+    enabled: false
     name: "pre-prod-kafka-mirror-maker"
     # Active/Passive setup for DR
     clusters:
       - alias: "source"
         bootstrapServers: "pre-prod-kafka-cluster-kafka-bootstrap.pre-prod-kafka.svc.cluster.local:9092"
       - alias: "target"
+        #bootstrapServers: "pre-prod-dc-kafka-cluster-kafka-bootstrap-pre-prod-dc-kafka.apps.dcpreprod.epay.sbi:443"
         bootstrapServers: "dr-kafka-cluster-kafka-bootstrap.dr-kafka.svc.cluster.local:9092"
     mirrors:
       - sourceCluster: "source"
@@ -695,7 +700,7 @@ tracing:
   type: "tempo"
   # Create our own Tempo instance for pre-prod environment
   tempo:
-    enabled: true
+    enabled: false
     name: "pre-prod-tempo"
     namespace: "pre-prod-tempo"
     tenants:
@@ -741,7 +746,7 @@ tracing:
       storageClass: "trident-csi-retain"
 # Environment-level monitoring infrastructure
 monitoring:
-  enabled: true
+  enabled: false
   
   # Use OpenShift User Workload Monitoring (built-in Prometheus)
   userWorkloadMonitoring:
@@ -750,7 +755,7 @@ monitoring:
     
   # Disable separate Prometheus deployment - use OpenShift built-in
   prometheus:
-    enabled: true
+    enabled: false
     retention: "30d"
     
   # Grafana for enhanced dashboards (optional - OpenShift Console has basic monitoring)
@@ -780,7 +785,7 @@ monitoring:
     
   # PrometheusRule for infrastructure alerting (works with OpenShift monitoring)
   prometheusRule:
-    enabled: true
+    enabled: false
     rules:
       - alert: "KafkaClusterDown"
         expr: "kafka_server_replicamanager_leadercount == 0"
@@ -881,7 +886,7 @@ monitoring:
 
 # Environment-level persistent storage
 persistentStorage:
-  enabled: true
+  enabled: false
   
   # Storage classes configuration
   storageClasses:
@@ -891,7 +896,7 @@ persistentStorage:
   volumes:
     # Tempo storage
     tempo:
-      enabled: true
+      enabled: false
       size: "50Gi"
       storageClass: "trident-csi-retain"
       accessMode: "ReadWriteOnce"
@@ -934,7 +939,7 @@ persistentStorage:
 
 # OpenTelemetry configuration for environment
 opentelemetry:
-  enabled: true
+  enabled: false
   
   # OpenTelemetry Collector
   collector:
