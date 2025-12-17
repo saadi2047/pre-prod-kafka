@@ -1,0 +1,133 @@
+{{- if and .Values.kafka.enabled .Values.kafka.mirrorMaker2.enabled }}
+# MirrorMaker 2 for Disaster Recovery
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaMirrorMaker2
+metadata:
+  name: {{ .Values.kafka.mirrorMaker2.name }}
+  namespace: {{ .Values.kafka.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.kafka.mirrorMaker2.name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: kafka-mirror-maker
+    environment: {{ .Values.global.environment }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "11"
+spec:
+  version: {{ .Values.kafka.cluster.version }}
+  replicas: 1
+  
+  # Required: Connect cluster reference (MUST be target cluster per AMQ documentation)
+  connectCluster: "target"
+  
+  # Resource specifications
+  resources:
+    {{- if .Values.kafka.mirrorMaker2.resources.requests }}
+    requests:
+      {{- if .Values.kafka.mirrorMaker2.resources.requests.memory }}
+      memory: {{ .Values.kafka.mirrorMaker2.resources.requests.memory }}
+      {{- end }}
+      {{- if .Values.kafka.mirrorMaker2.resources.requests.cpu }}
+      cpu: {{ .Values.kafka.mirrorMaker2.resources.requests.cpu }}
+      {{- end }}
+    {{- end }}
+    {{- if .Values.kafka.mirrorMaker2.resources.limits }}
+    limits:
+      {{- if .Values.kafka.mirrorMaker2.resources.limits.memory }}
+      memory: {{ .Values.kafka.mirrorMaker2.resources.limits.memory }}
+      {{- end }}
+      {{- if .Values.kafka.mirrorMaker2.resources.limits.cpu }}
+      cpu: {{ .Values.kafka.mirrorMaker2.resources.limits.cpu }}
+      {{- end }}
+    {{- end }}
+  
+  # Cluster definitions
+  clusters:
+  {{- range .Values.kafka.mirrorMaker2.clusters }}
+  - alias: {{ .alias }}
+    bootstrapServers: {{ .bootstrapServers }}
+    {{- if eq .alias "target" }}
+    tls:
+     trustedCertificates:
+       - certificate: ca.crt
+         secretName: dc-tls-cert-mm
+    config:
+      # Target cluster configuration (per AMQ examples)
+      config.storage.replication.factor: -1
+      offset.storage.replication.factor: -1
+      status.storage.replication.factor: -1
+    {{- end }}
+    {{- if .config }}
+    {{- if ne .alias "target" }}
+    config:
+      {{- range $key, $value := .config }}
+      {{ $key }}: {{ $value }}
+      {{- end }}
+    {{- end }}
+    {{- end }}
+  {{- end }}
+  
+  # Mirror definitions
+  mirrors:
+  {{- range .Values.kafka.mirrorMaker2.mirrors }}
+  - sourceCluster: {{ .sourceCluster }}
+    targetCluster: {{ .targetCluster }}
+    sourceConnector:
+      tasksMax: 1
+      config:
+        # Use default replication factor per AMQ examples
+        replication.factor: -1
+        offset-syncs.topic.replication.factor: -1
+        sync.topic.acls.enabled: "false"
+        refresh.topics.interval.seconds: 600
+        # PDF Recommendation: Use IdentityReplicationPolicy
+        replication.policy.class: "org.apache.kafka.connect.mirror.IdentityReplicationPolicy"
+        {{- if .sourceConnector.config }}
+        {{- range $key, $value := .sourceConnector.config }}
+        {{ $key }}: {{ $value }}
+        {{- end }}
+        {{- end }}
+    heartbeatConnector:
+      tasksMax: 1
+      config:
+        heartbeats.topic.replication.factor: -1
+        {{- if .heartbeatConnector.config }}
+        {{- range $key, $value := .heartbeatConnector.config }}
+        {{ $key }}: {{ $value }}
+        {{- end }}
+        {{- end }}
+    checkpointConnector:
+      tasksMax: 1
+      config:
+        checkpoints.topic.replication.factor: -1
+        sync.group.offsets.enabled: "false"
+        refresh.groups.interval.seconds: 600
+        {{- if .checkpointConnector.config }}
+        {{- range $key, $value := .checkpointConnector.config }}
+        {{ $key }}: {{ $value }}
+        {{- end }}
+        {{- end }}
+    topicsPattern: {{ .topicsPattern | quote }}
+    {{- if .groupsPattern }}
+    groupsPattern: {{ .groupsPattern | quote }}
+    {{- end }}
+  {{- end }}
+  
+  # Pod template with affinity and tolerations
+  template:
+    pod:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/worker
+                operator: Exists
+              - key: workload-type
+                operator: In
+                values: ["kafka"]
+      tolerations:
+        - key: "workload-type"
+          operator: "Equal"
+          value: "kafka"
+          effect: "NoSchedule"
+{{- end }} 
