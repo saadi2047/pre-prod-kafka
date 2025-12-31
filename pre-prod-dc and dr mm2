@@ -22,3 +22,34 @@ mirrorMaker2:
         bootstrapServers: "pre-prod-kafka-cluster-kafka-bootstrap-pre-prod-kafka.apps.preprod.epay.sbi:443"
         #bootstrapServers: "dr-kafka-cluster-kafka-bootstrap.dr-kafka.svc.cluster.local:9092"
     mirrors:
+
+
+-------------------------------------------
+
+
+mirrorMaker2:
+  enabled: true
+  name: "pre-prod-dr-kafka-mirror-maker"
+
+  clusters:
+    # SOURCE = DR (ACTIVE)
+    - alias: "source"
+      bootstrapServers: "pre-prod-kafka-cluster-kafka-bootstrap.pre-prod-kafka.svc.cluster.local:9092"
+
+    # TARGET = DC (PASSIVE)
+    - alias: "target"
+      bootstrapServers: "pre-prod-dc-kafka-cluster-kafka-bootstrap-pre-prod-dc-kafka.apps.dcpreprod.epay.sbi:443"
+
+  mirrors:
+    - sourceCluster: "source"
+      targetCluster: "target"
+      topicsPattern: ".*"
+      groupsPattern: ".*"
+
+      sourceConnector:
+        config:
+          replication.policy.class: "org.apache.kafka.connect.mirror.IdentityReplicationPolicy"
+
+      checkpointConnector:
+        config:
+          replication.policy.class: "org.apache.kafka.connect.mirror.IdentityReplicationPolicy"
