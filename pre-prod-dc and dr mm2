@@ -26,6 +26,8 @@ mirrorMaker2:
 
 -------------------------------------------
 
+pre-prod-dr config :
+
 
 mirrorMaker2:
   enabled: true
@@ -53,3 +55,22 @@ mirrorMaker2:
       checkpointConnector:
         config:
           replication.policy.class: "org.apache.kafka.connect.mirror.IdentityReplicationPolicy"
+
+
+-------------------------------------------------------------
+pre-prod-dc config:
+
+mirrorMaker2:
+  enabled: false
+  name: "pre-prod-dc-kafka-mirror-maker"
+
+  clusters:
+    # SOURCE (would be DC if active – NOT USED NOW)
+    - alias: "source"
+      bootstrapServers: "pre-prod-dc-kafka-cluster-kafka-bootstrap.pre-prod-dc-kafka.svc.cluster.local:9092"
+
+    # TARGET (would be DR if failover – NOT USED NOW)
+    - alias: "target"
+      bootstrapServers: "pre-prod-kafka-cluster-kafka-bootstrap-pre-prod-kafka.apps.preprod.epay.sbi:443"
+
+  mirrors: []
