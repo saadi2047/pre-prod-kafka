@@ -77,7 +77,10 @@ mirrorMaker2:
 
 
 
---------------------------mirrorMaker2:
+--------------------------
+DR active
+
+mirrorMaker2:
   enabled: true
   name: "pre-prod-dc-kafka-mirror-maker"
 
@@ -104,3 +107,34 @@ mirrorMaker2:
         config:
           replication.policy.class: "org.apache.kafka.connect.mirror.IdentityReplicationPolicy"
 
+
+++++++++++++++++++++++++++++++++++
+DC active
+
+mirrorMaker2:
+  enabled: true
+  name: "pre-prod-dr-kafka-mirror-maker"
+
+  clusters:
+    # SOURCE = ACTIVE DC (remote)
+    - alias: "source"
+      bootstrapServers: "pre-prod-dc-kafka-cluster-kafka-bootstrap-pre-prod-dc-kafka.apps.dcpreprod.epay.sbi:443"
+
+    # TARGET = LOCAL DR Kafka
+    - alias: "target"
+      bootstrapServers: "pre-prod-kafka-cluster-kafka-bootstrap.pre-prod-kafka.svc.cluster.local:9092"
+      # use 9093 if internal TLS listener is enabled
+
+  mirrors:
+    - sourceCluster: "source"
+      targetCluster: "target"
+      topicsPattern: ".*"
+      groupsPattern: ".*"
+
+      sourceConnector:
+        config:
+          replication.policy.class: "org.apache.kafka.connect.mirror.IdentityReplicationPolicy"
+
+      checkpointConnector:
+        config:
+          replication.policy.class: "org.apache.kafka.connect.mirror.IdentityReplicationPolicy"
