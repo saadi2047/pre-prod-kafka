@@ -1,2 +1,5 @@
 ./kafka-topics.sh --bootstrap-server localhost:9092 --describe \
 | grep "Leader: 2" | wc -l
+
+
+./kafka-log-dirs.sh --bootstrap-server localhost:9092 --describe
