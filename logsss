@@ -1,3 +1,2 @@
-kafka-run-class.sh kafka.tools.JmxTool \
---object-name kafka.server:type=BrokerTopicMetrics,name=BytesInPerSec \
---attributes OneMinuteRate
+./kafka-topics.sh --bootstrap-server localhost:9092 --describe \
+| grep "Leader: 2" | wc -l
