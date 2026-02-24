@@ -1,0 +1,277 @@
+Perfect Saadi 🔥
+Now I’ll give you a **proper production-grade SOP** that you can share in meeting or document in Confluence.
+
+I’ll structure it like real enterprise RCA + Action Plan.
+
+---
+
+# 📌 SOP – Broker Hotspot Due To Leader Skew & Low Partition Count
+
+---
+
+# 1️⃣ Problem Statement
+
+During performance testing in PERF Kafka cluster:
+
+* High CPU, network and disk utilization observed on **Broker-2**
+* Broker-0 and Broker-1 underutilized
+* No ISR shrink
+* No under-replicated partitions
+* Cluster healthy
+
+---
+
+# 2️⃣ Root Cause Analysis (RCA)
+
+After analysis of topic metadata:
+
+* Hot business topics had only **4 partitions**
+* Majority of those partitions had **leader on Broker-2**
+* Produce traffic goes to leader broker
+* Therefore majority write traffic concentrated on Broker-2
+
+This resulted in:
+
+* Uneven CPU usage
+* Uneven disk I/O
+* Uneven network traffic
+
+📌 Cluster was healthy, but workload distribution was skewed.
+
+---
+
+# 3️⃣ Evidence Collected
+
+Commands used:
+
+### Check partition count
+
+```bash
+./kafka-topics.sh --bootstrap-server localhost:9092 --describe | grep PartitionCount
+```
+
+### Check leader distribution
+
+```bash
+./kafka-topics.sh --bootstrap-server localhost:9092 --describe | grep Leader
+```
+
+Findings:
+
+* Most business topics → 4 partitions
+* Broker-2 leader for 3/4 partitions in multiple hot topics
+
+---
+
+# 4️⃣ Technical Explanation
+
+Kafka distributes load based on:
+
+* Partition count
+* Leader placement
+* Throughput per partition
+
+With:
+
+* 4 partitions
+* 3 brokers
+* Heavy write traffic
+
+Leader skew caused traffic concentration.
+
+Balanced cluster leader count ≠ balanced workload.
+
+---
+
+# 5️⃣ Recommended Solution
+
+## ✅ Primary Recommendation
+
+Increase partitions of high-throughput topics from:
+
+```
+4 → 9
+```
+
+Why 9?
+
+* 3 brokers
+* 3 partitions per broker
+* Better leader balance
+* Higher parallelism
+* Better scaling
+
+---
+
+## ✅ Secondary Recommendation
+
+After partition increase:
+
+Run Cruise Control rebalance to:
+
+* Distribute partitions evenly
+* Balance leaders
+* Normalize broker load
+
+---
+
+# 6️⃣ Implementation Steps
+
+---
+
+## Step 1 – Identify Hot Topics
+
+Hot topics:
+
+* transaction_email_notification_topic
+* transaction_sms_notification_topic
+* process_bookingDetails_topic
+* merchant_* topics
+* process_bulk_refund_topic
+
+---
+
+## Step 2 – Increase Partitions
+
+Example:
+
+```bash
+./kafka-topics.sh \
+--bootstrap-server localhost:9092 \
+--alter \
+--topic transaction_email_notification_topic \
+--partitions 9
+```
+
+Repeat for each hot topic.
+
+No downtime.
+
+---
+
+## Step 3 – Rebalance
+
+After partition increase:
+
+Use Cruise Control to rebalance leaders.
+
+---
+
+# 7️⃣ Throughput Calculation Method (Important)
+
+Now coming to your main question 🔥
+
+How to calculate throughput properly?
+
+---
+
+## 🔹 Method 1 – From Producer Metrics (Best)
+
+Check producer metrics:
+
+```
+record-send-rate
+record-size-avg
+```
+
+Formula:
+
+```
+Throughput (MB/sec) = record-send-rate × record-size-avg / (1024 × 1024)
+```
+
+---
+
+## 🔹 Method 2 – From Broker Metrics
+
+Check JMX metric:
+
+```
+BytesInPerSec
+BytesOutPerSec
+```
+
+You can see in:
+
+* Prometheus
+* Grafana
+* Kafka JMX exporter
+
+---
+
+## 🔹 Method 3 – From Log Size Growth
+
+Measure topic size increase over time.
+
+Example:
+
+If topic size increases:
+
+```
+3 GB in 5 minutes
+```
+
+Then:
+
+```
+3 × 1024 MB / 300 seconds = 10.24 MB/sec
+```
+
+That is real throughput.
+
+---
+
+# 8️⃣ Partition Sizing Formula
+
+Safe partition sizing:
+
+```
+Partition Count =
+Total Topic Throughput / Target Throughput Per Partition
+```
+
+Safe target:
+
+```
+5–10 MB/sec per partition
+```
+
+Example:
+
+If topic = 60 MB/sec:
+
+```
+60 / 8 = 7.5 → round to 9
+```
+
+Always round to multiple of broker count.
+
+---
+
+# 9️⃣ Final Recommended Strategy For Your Environment
+
+For PERF:
+
+* Increase hot topics to 9 partitions
+* Run rebalance
+* Re-run perf test
+* Compare CPU distribution
+
+For PROD:
+
+* Estimate peak throughput
+* Design partitions accordingly
+* Avoid 4 partition design for high traffic systems
+
+---
+
+# 🔟 One-Line Executive Summary (Meeting Ready)
+
+“Broker hotspot observed due to leader skew and low partition count on high-throughput topics. Recommended partition increase to 9 and post-change rebalance to ensure even load distribution.”
+
+---
+
+If you want, I can now:
+
+* Help you prepare a mail update to stakeholders
+* Or calculate exact partition number if you share MB/sec from Grafana 🔥
