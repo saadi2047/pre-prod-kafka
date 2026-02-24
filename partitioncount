@@ -1,0 +1,46 @@
+1️⃣ Show All Topics With Partition Count
+
+Run this from any broker pod:
+
+cd bin
+./kafka-topics.sh --bootstrap-server localhost:9092 --describe \
+| grep "PartitionCount"
+
+This will show output like:
+
+Topic: transaction_sms_notification_topic  PartitionCount: 4
+Topic: merchant_report_alert_topic         PartitionCount: 1
+Topic: __consumer_offsets                  PartitionCount: 50
+✅ 2️⃣ Sort Topics By Partition Count (Very Useful)
+
+Better command 👇
+
+cd bin
+./kafka-topics.sh --bootstrap-server localhost:9092 --describe \
+| grep "PartitionCount" \
+| awk '{print $2, $4}' \
+| sort -k2 -n
+
+This will show:
+
+merchant_report_alert_topic 1
+ops_recon_record_unmatched_topic 1
+transaction_sms_notification_topic 4
+...
+__consumer_offsets 50
+
+👉 Top = least partitions
+👉 Bottom = most partitions
+
+✅ 3️⃣ Find Topic With MAX Partitions Only
+cd bin
+./kafka-topics.sh --bootstrap-server localhost:9092 --describe \
+| grep "PartitionCount" \
+| awk '{print $2, $4}' \
+| sort -k2 -nr | head -1
+✅ 4️⃣ Find Topic With MIN Partitions Only
+cd bin
+./kafka-topics.sh --bootstrap-server localhost:9092 --describe \
+| grep "PartitionCount" \
+| awk '{print $2, $4}' \
+| sort -k2 -n | head -1
