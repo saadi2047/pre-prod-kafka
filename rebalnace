@@ -1,0 +1,57 @@
+✅ Step 1 — Check Cruise Control Pod
+oc get pods -n <kafka-namespace>
+
+You should see something like:
+
+my-cluster-cruise-control-xxxx
+✅ Step 2 — Port Forward Cruise Control
+oc port-forward svc/<cluster-name>-cruise-control 9090:9090 -n <namespace>
+
+Example:
+
+oc port-forward svc/perf-kafka-cruise-control 9090:9090 -n perf
+
+Now CC API available at:
+
+http://localhost:9090
+🧪 Step 3 — First Run Dry Run (NO IMPACT)
+
+Very important 👇
+
+Open new terminal and run:
+
+curl -X POST "http://localhost:9090/kafkacruisecontrol/rebalance?dryrun=true"
+
+This:
+
+Generates proposal
+
+Shows partition movements
+
+Does NOT move anything
+
+Safe.
+
+🔥 Step 4 — Execute Real Rebalance
+
+If proposal looks good:
+
+curl -X POST "http://localhost:9090/kafkacruisecontrol/rebalance"
+
+Now it will:
+
+Start moving partitions
+
+Change leaders gradually
+
+Cluster remains online.
+
+📊 Step 5 — Monitor Progress
+
+Check status:
+
+curl "http://localhost:9090/kafkacruisecontrol/state"
+
+Or watch logs:
+
+oc logs -f <cruise-control-pod>
