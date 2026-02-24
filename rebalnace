@@ -55,3 +55,66 @@ curl "http://localhost:9090/kafkacruisecontrol/state"
 Or watch logs:
 
 oc logs -f <cruise-control-pod>
+
+
++++++++++++++++++++++++++++++++++++
+
+STEP 1 — Check Cruise Control Service
+
+Run:
+
+oc get svc -n <your-namespace> | grep cruise
+
+You will see something like:
+
+perf-kafka-cruise-control
+STEP 2 — Port Forward Cruise Control
+
+Run this in your local terminal:
+
+oc port-forward svc/perf-kafka-cruise-control 9090:9090 -n <namespace>
+
+Example:
+
+oc port-forward svc/perf-kafka-cruise-control 9090:9090 -n perf
+
+Now Cruise Control is accessible locally at:
+
+http://localhost:9090
+
+Keep this terminal open.
+
+STEP 3 — First Do Safe Dry Run (No Impact)
+
+Open another terminal and run:
+
+curl -X POST "http://localhost:9090/kafkacruisecontrol/rebalance?dryrun=true"
+
+This will:
+
+Analyze cluster
+
+Show what it plans to move
+
+NOT move anything
+
+Safe step.
+
+STEP 4 — Run Actual Rebalance
+
+After dry run looks okay:
+
+curl -X POST "http://localhost:9090/kafkacruisecontrol/rebalance"
+
+Now it will:
+
+Start moving partitions slowly
+
+Shift leaders
+
+Balance load
+
+Cluster stays online.
+
+STEP 5 — Check Status
+curl "http://localhost:9090/kafkacruisecontrol/state"
